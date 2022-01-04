@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/102er/protoc-gen-gogo-errors/errors"
-	"strings"
-
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	"strings"
 )
 
 const (
