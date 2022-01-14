@@ -21,14 +21,14 @@ const (
 //go:generate protoc -I. --go_out=paths=source_relative:. errors.proto
 
 func (x *Error) Error() string {
-	return fmt.Sprintf("error: code = %d reason = %s message = %s metadata = %v", x.Code, x.Reason, x.Message, x.Metadata)
+	return fmt.Sprintf("error: code = %d  message = %s detail = %s metadata = %v", x.Code, x.Message, x.Detail, x.Metadata)
 }
 
 // GRPCStatus returns the Status represented by se.
 func (x *Error) GRPCStatus() *status.Status {
 	s, _ := status.New(httpstatus.ToGRPCCode(int(x.Code)), x.Message).
 		WithDetails(&errdetails.ErrorInfo{
-			Reason:   x.Reason,
+			Reason:   x.Message,
 			Metadata: x.Metadata,
 		})
 	return s
@@ -50,11 +50,11 @@ func (x *Error) WithMetadata(md map[string]string) *Error {
 }
 
 // New returns an error object for the code, message.
-func New(code int, reason, message string) *Error {
+func New(code int, message, detail string) *Error {
 	return &Error{
 		Code:    int32(code),
 		Message: message,
-		Reason:  reason,
+		Detail:  detail,
 	}
 }
 
@@ -77,13 +77,13 @@ func Code(err error) int {
 	return int(FromError(err).Code)
 }
 
-// Reason returns the reason for a particular error.
+// Message returns the reason for a particular error.
 // It supports wrapped errors.
-func Reason(err error) string {
+func Message(err error) string {
 	if err == nil {
 		return UnknownReason
 	}
-	return FromError(err).Reason
+	return FromError(err).Message
 }
 
 // FromError try to convert an error to *Error.
@@ -105,7 +105,7 @@ func FromError(err error) *Error {
 		for _, detail := range gs.Details() {
 			switch d := detail.(type) {
 			case *errdetails.ErrorInfo:
-				ret.Reason = d.Reason
+				ret.Message = d.Reason
 				return ret.WithMetadata(d.Metadata)
 			}
 		}

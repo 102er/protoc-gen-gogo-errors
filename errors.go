@@ -77,17 +77,33 @@ func genErrorsReason(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 		if enumCode == 0 {
 			continue
 		}
+		messageZh := ""
+		if mz, ok := proto.GetExtension(v.Desc.Options(), errors.E_MessageZh).(string); ok {
+			messageZh = mz
+		}
+		messageEn := ""
+		if me, ok := proto.GetExtension(v.Desc.Options(), errors.E_MessageEn).(string); ok {
+			messageEn = me
+		}
+		errCode := 0
+		if ec, ok := proto.GetExtension(v.Desc.Options(), errors.E_ErrCode).(int); ok {
+			errCode = ec
+		}
 		err := &errorInfo{
 			Name:       string(enum.Desc.Name()),
 			Value:      string(v.Desc.Name()),
 			CamelValue: case2Camel(string(v.Desc.Name())),
 			HTTPCode:   enumCode,
+			MessageEn:  messageEn,
+			MessageZh:  messageZh,
+			ErrCode:    errCode,
 		}
 		ew.Errors = append(ew.Errors, err)
 	}
 	if len(ew.Errors) == 0 {
 		return true
 	}
+	g.P(ew.i18n())
 	g.P(ew.execute())
 	return false
 }
