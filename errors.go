@@ -11,6 +11,7 @@ import (
 const (
 	errorsPackage = protogen.GoImportPath("github.com/102er/protoc-gen-gogo-errors/errors")
 	fmtPackage    = protogen.GoImportPath("fmt")
+	ctxPackage    = protogen.GoImportPath("context")
 )
 
 // generateFile generates a _errors.pb.go file containing kratos errors definitions.
@@ -26,6 +27,7 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.Generated
 	g.P("package ", file.GoPackageName)
 	g.P()
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
+	g.QualifiedGoIdent(ctxPackage.Ident(""))
 	generateFileContent(gen, file, g)
 	return g
 }
@@ -62,9 +64,17 @@ func genErrorsReason(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 	if code > 600 || code < 0 {
 		panic(fmt.Sprintf("Enum '%s' range must be greater than 0 and less than or equal to 600", string(enum.Desc.Name())))
 	}
+
+	defaultErrCode := proto.GetExtension(enum.Desc.Options(), errors.E_DefaultErrCode)
+	errCode := 0
+	if ok := defaultErrCode.(int32); ok != 0 {
+		errCode = int(ok)
+	}
+
 	var ew errorWrapper
 	for _, v := range enum.Values {
 		enumCode := code
+		enumErrCode := errCode
 		eCode := proto.GetExtension(v.Desc.Options(), errors.E_Code)
 		if ok := eCode.(int32); ok != 0 {
 			enumCode = int(ok)
@@ -77,17 +87,20 @@ func genErrorsReason(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 		if enumCode == 0 {
 			continue
 		}
+		eErrCode := proto.GetExtension(v.Desc.Options(), errors.E_ErrCode)
+		if ok := eErrCode.(int32); ok != 0 {
+			enumErrCode = int(ok)
+		}
+
+		eReasonCh := proto.GetExtension(v.Desc.Options(), errors.E_Zh)
 		messageZh := ""
-		if mz, ok := proto.GetExtension(v.Desc.Options(), errors.E_MessageZh).(string); ok {
-			messageZh = mz
+		if r, ok := eReasonCh.(string); ok {
+			messageZh = r
 		}
+		eReasonEn := proto.GetExtension(v.Desc.Options(), errors.E_En)
 		messageEn := ""
-		if me, ok := proto.GetExtension(v.Desc.Options(), errors.E_MessageEn).(string); ok {
-			messageEn = me
-		}
-		errCode := 0
-		if ec, ok := proto.GetExtension(v.Desc.Options(), errors.E_ErrCode).(int); ok {
-			errCode = ec
+		if r, ok := eReasonEn.(string); ok {
+			messageEn = r
 		}
 		err := &errorInfo{
 			Name:       string(enum.Desc.Name()),
@@ -96,14 +109,16 @@ func genErrorsReason(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 			HTTPCode:   enumCode,
 			MessageEn:  messageEn,
 			MessageZh:  messageZh,
-			ErrCode:    errCode,
+			ErrCode:    enumErrCode,
 		}
 		ew.Errors = append(ew.Errors, err)
 	}
 	if len(ew.Errors) == 0 {
 		return true
 	}
+	g.P("// is i18n value")
 	g.P(ew.i18n())
+	g.P()
 	g.P(ew.execute())
 	return false
 }

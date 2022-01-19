@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	httpstatus "github.com/go-kratos/kratos/v2/transport/http/status"
@@ -37,7 +38,7 @@ func (x *Error) GRPCStatus() *status.Status {
 // Is matches each error in the chain with the target value.
 func (x *Error) Is(err error) bool {
 	if se := new(Error); errors.As(err, &se) {
-		return se.Reason == x.Reason
+		return se.Message == x.Message
 	}
 	return false
 }
@@ -66,6 +67,16 @@ func Newf(code int, reason, format string, a ...interface{}) *Error {
 // Errorf returns an error object for the code, message and error info.
 func Errorf(code int, reason, format string, a ...interface{}) error {
 	return New(code, reason, fmt.Sprintf(format, a...))
+}
+
+// NewWithErrCode returns an error object for the code, message.
+func NewWithErrCode(code, eCode int, message, detail string) *Error {
+	return &Error{
+		Code:    int32(code),
+		ErrCode: int32(eCode),
+		Message: message,
+		Detail:  detail,
+	}
 }
 
 // Code returns the http code for a error.
@@ -112,4 +123,14 @@ func FromError(err error) *Error {
 		return ret
 	}
 	return New(UnknownCode, UnknownReason, err.Error())
+}
+
+type ErrorLangCtx struct{}
+
+func NewErrorLangCtx(ctx context.Context, lang string) context.Context {
+	return context.WithValue(ctx, ErrorLangCtx{}, lang)
+}
+func FromErrorLangCtx(ctx context.Context) (string, bool) {
+	l, ok := ctx.Value(ErrorLangCtx{}).(string)
+	return l, ok
 }

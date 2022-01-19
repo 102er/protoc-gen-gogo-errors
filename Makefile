@@ -19,4 +19,4 @@ ex-errors:
 			-I=./errors \
 			--gogo_out=paths=source_relative:. \
 			--gogo-errors_out=paths=source_relative:. \
-		    examples/hello_world.proto
+		    examples/v1/hello_world.proto

@@ -8,7 +8,7 @@ import "google/protobuf/descriptor.proto";
 
 message Error {
   int32 code = 1;
-  int32 ErrCode = 2;
+  int32 errCode = 2;
   string message = 3;
   string detail = 4;
   map<string, string> metadata = 5;
@@ -26,14 +26,14 @@ extend google.protobuf.EnumValueOptions {
   int32 code = 1110;
 }
 
-extend google.protobuf.EnumOptions {
+extend google.protobuf.EnumValueOptions {
   int32 err_code = 1111;
 }
 
 extend google.protobuf.EnumValueOptions {
-  string message_en = 1112;
+  string en = 1112;
 }
 
 extend google.protobuf.EnumValueOptions {
-  string message_zh = 1113;
+  string zh = 1113;
 }
